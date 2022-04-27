@@ -7,10 +7,12 @@ import java.net.SocketException;
 public class DHCPServidor {
     private static final int MAX_BUFFER_SIZE = 65535;
     private static final int serverPort = 67;
+    private static ServidorOpciones servidorOpciones;
 
     public DHCPServidor() {
-        DatagramSocket datagramSocket = null;
         try {
+            DatagramSocket datagramSocket = null;
+            servidorOpciones = new ServidorOpciones();
             datagramSocket = new DatagramSocket(serverPort);
 
             byte[] buffer = new byte[MAX_BUFFER_SIZE];
