@@ -3,6 +3,7 @@ package puj.redes;
 import java.io.Serializable;
 import java.net.DatagramPacket;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class DHCPMensaje implements Serializable {
@@ -14,16 +15,18 @@ public class DHCPMensaje implements Serializable {
     private Integer xid;
     private short secs;
     private short flags;
-    private byte[] ciaddr;
-    private byte[] yiaddr;
-    private byte[] siaddr;
-    private byte[] giaddr;
-    private byte[] chaddr;
-    private byte[] sname;
-    private byte[] file;
-    DHCPOpciones opciones;
+    private byte[] ciaddr = new byte [4];
+    private byte[] yiaddr = new byte [4];
+    private byte[] siaddr = new byte [4];
+    private byte[] giaddr = new byte [4];
+    private byte[] chaddr = new byte [16];
+    private byte[] sname  = new byte [64];
+    private byte[] file  = new byte [128];
+    private byte[] opciones;
+    ArrayList <DHCPOpciones> opcionesDHCP = new ArrayList<>();
 
     public DHCPMensaje (DatagramPacket datagramPacket) {
+
         try {
             this.op = extraerBytes(datagramPacket.getData(), 0, 1)[0];
             this.htype = extraerBytes(datagramPacket.getData(), 1, 1)[0];
@@ -36,17 +39,27 @@ public class DHCPMensaje implements Serializable {
             this.yiaddr = extraerBytes(datagramPacket.getData(), 16, 4);
             this.siaddr = extraerBytes(datagramPacket.getData(), 20, 4);
             this.giaddr = extraerBytes(datagramPacket.getData(), 24, 4);
-            this.chaddr = extraerBytes(datagramPacket.getData(), 28, 44);
-            this.sname = extraerBytes(datagramPacket.getData(), 72, 64);
-            this.file = extraerBytes(datagramPacket.getData(), 136, 128);
-            // Options...
+            this.chaddr = extraerBytes(datagramPacket.getData(), 28, 16);
+            this.sname = extraerBytes(datagramPacket.getData(), 44, 64);
+            this.file = extraerBytes(datagramPacket.getData(), 108, 128);
+            byte[] temp = extraerBytes(datagramPacket.getData(), 240, datagramPacket.getLength() - 240);
+
+            for (int i = 0; i < temp.length - 1; i += temp[i+1] + 2) {
+                DHCPOpciones opcionDHCP = new DHCPOpciones();
+                opcionDHCP.setType(temp[i]);
+                opcionDHCP.setLength(temp[i+1]);
+                opcionDHCP.setValue(extraerBytes(temp, i+2, opcionDHCP.getLength()));
+                this.opcionesDHCP.add(opcionDHCP);
+            }
+
             // Validar que los datos del objeto estén correctos.
+
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public DHCPMensaje(byte op, byte htype, byte hlen, byte hops, int xid, short secs, short flags, byte[] ciaddr, byte[] yiaddr, byte[] siaddr, byte[] giaddr, byte[] chaddr, byte[] sname, byte[] file, DHCPOpciones opciones) {
+    public DHCPMensaje(byte op, byte htype, byte hlen, byte hops, int xid, short secs, short flags, byte[] ciaddr, byte[] yiaddr, byte[] siaddr, byte[] giaddr, byte[] chaddr, byte[] sname, byte[] file, byte[] opciones) {
         this.op = op;
         this.htype = htype;
         this.hlen = hlen;
@@ -176,18 +189,30 @@ public class DHCPMensaje implements Serializable {
         this.file = file;
     }
 
-    public DHCPOpciones getOpciones() {
+    public byte[] getOpciones() {
         return opciones;
     }
 
-    public void setOpciones(DHCPOpciones opciones) {
+    public void setOpciones(byte[] opciones) {
         this.opciones = opciones;
     }
 
-    private static byte[] extraerBytes(byte[] buffer, int inicio, int tam) throws Exception {
+    public static byte[] extraerBytes(byte[] buffer, int inicio, int tam) throws Exception {
         byte[] resultado = new byte[tam];
         System.arraycopy(buffer, inicio, resultado, 0, tam);
         return resultado;
+    }
+
+    public void setXid(Integer xid) {
+        this.xid = xid;
+    }
+
+    public ArrayList<DHCPOpciones> getOpcionesDHCP() {
+        return opcionesDHCP;
+    }
+
+    public void setOpcionesDHCP(ArrayList<DHCPOpciones> opcionesDHCP) {
+        this.opcionesDHCP = opcionesDHCP;
     }
 
     @Override
@@ -207,7 +232,7 @@ public class DHCPMensaje implements Serializable {
                 "\nchaddr: " + Arrays.toString(chaddr) +
                 "\nsname: " + Arrays.toString(sname) +
                 "\nfile: " + Arrays.toString(file) +
-                "\nopciones: " + opciones +
+                "\nopciones: " + opcionesDHCP.toString() +
                 "\n";
     }
 }

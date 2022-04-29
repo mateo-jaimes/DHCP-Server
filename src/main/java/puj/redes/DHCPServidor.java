@@ -2,9 +2,9 @@ package puj.redes;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.SocketException;
 
 public class DHCPServidor {
+
     private static final int MAX_BUFFER_SIZE = 65535;
     private static final int serverPort = 67;
     private static ServidorOpciones servidorOpciones;
@@ -37,7 +37,47 @@ public class DHCPServidor {
         }
     }
 
-    private static void procesarMensaje(DHCPMensaje mensaje) {
+    private static void procesarMensaje(DHCPMensaje mensaje) throws Exception {
+        // Guardar en el archivo la solicitud.
+
+        TipoMensajeDHCP tipoMensajeDHCP = null;
+        byte[] IPsolicitada, IPservidor, subnet, nombreCliente;
+
+        for (DHCPOpciones opcion : mensaje.getOpcionesDHCP()) {
+            switch (opcion.getType()) {
+                case 1:
+                    subnet = opcion.getValue();
+                    break;
+
+                case 12:
+                    nombreCliente = opcion.getValue();
+                    break;
+
+                case 50:
+                    IPsolicitada = opcion.getValue();
+                    break;
+
+                case 53:
+                    tipoMensajeDHCP = TipoMensajeDHCP.values()[opcion.getValue()[0]];
+                    break;
+
+                case 54:
+                    IPservidor = opcion.getValue();
+                    break;
+
+                default:
+                    tipoMensajeDHCP = TipoMensajeDHCP.INVALID;
+            }
+        }
+
+        switch (tipoMensajeDHCP) {
+            case DHCPDISCOVER:
+
+                break;
+        }
+
+        // Asignar IPS
+        // Responder
         mensaje.toString();
         return;
     }
