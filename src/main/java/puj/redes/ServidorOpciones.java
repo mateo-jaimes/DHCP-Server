@@ -25,7 +25,7 @@ public class ServidorOpciones {
                 nuevaOpcion.setTiempo(Integer.parseInt(obtenerValorConfig(bufferedReader)));
                 this.opciones.add(nuevaOpcion);
             } while (bufferedReader.readLine() != null);
-            
+
             in.close();
             System.out.println("[!] Configuración cargada.");
 

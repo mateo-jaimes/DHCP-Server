@@ -1,17 +1,10 @@
 package puj.redes;
 
-import puj.redes.guia.DHCPClient;
-import puj.redes.guia.DHCPMessage;
-
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.util.Arrays;
 
 public class AppCliente {
     private static final int MAX_BUFFER_SIZE = 1024;
@@ -30,8 +23,9 @@ public class AppCliente {
             socket = new DatagramSocket(listenPort);
 
             byte[] IPprueba = {5, 5, 5, 5};
+            byte[] chaddr = {(byte) 192, (byte) 168, 0 , 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-            DHCPOpciones op = new DHCPOpciones();
+            //DHCPOpciones op = new DHCPOpciones(1, 1, new byte[]);
 
             DHCPMensaje mensajeDHCP = new DHCPMensaje(
                     (byte)1,
@@ -45,10 +39,10 @@ public class AppCliente {
                     IPprueba,
                     IPprueba,
                     IPprueba,
+                    chaddr,
+                    chaddr, // Arreglar
                     IPprueba,
-                    IPprueba,
-                    IPprueba,
-                    op);
+                    IPprueba);
 
             mensajeToBytes(mensajeDHCP);
 
