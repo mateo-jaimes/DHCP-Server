@@ -16,7 +16,7 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.Scanner;
 
-public class ManejadorRegistros {
+public class ControladorRegistros {
     private static final String pathArchivo = System.getProperty("user.dir") + "/src/main/java/puj/redes/registro.txt";
     public static ArrayList<Registro> registros = new ArrayList<>();
 
@@ -79,6 +79,6 @@ public class ManejadorRegistros {
     }
 
     public static void setRegistros(ArrayList<Registro> registros) {
-        ManejadorRegistros.registros = registros;
+        ControladorRegistros.registros = registros;
     }
 }
