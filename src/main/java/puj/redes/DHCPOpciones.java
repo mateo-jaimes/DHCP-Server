@@ -13,10 +13,10 @@ public class DHCPOpciones implements Serializable {
 
     }
 
-    public DHCPOpciones(byte length, byte type, byte[] value) {
-        this.length = length;
+    public DHCPOpciones(byte type, byte[] value) {
         this.type = type;
         this.value = value;
+        this.length = (byte) value.length;
     }
 
     public byte getLength() {

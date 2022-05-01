@@ -4,11 +4,11 @@ import java.io.*;
 import java.net.InetAddress;
 import java.util.ArrayList;
 
-public class ManejadorSubredes {
+public class ControladorSubredes {
 
     private static ArrayList<Subred> subredes = new ArrayList<>();
 
-    public ManejadorSubredes() throws Exception {
+    public ControladorSubredes() throws Exception {
             FileInputStream fstream = new FileInputStream(System.getProperty("user.dir") + "/src/main/java/puj/redes/config");
             DataInputStream in = new DataInputStream(fstream);
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
@@ -42,6 +42,6 @@ public class ManejadorSubredes {
     }
 
     public void setSubredes(ArrayList<Subred> subredes) {
-        ManejadorSubredes.subredes = subredes;
+        ControladorSubredes.subredes = subredes;
     }
 }

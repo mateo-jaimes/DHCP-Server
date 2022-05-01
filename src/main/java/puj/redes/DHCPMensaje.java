@@ -241,14 +241,16 @@ public class DHCPMensaje implements Serializable {
         // opcion 2 = MAC
         // else print normal
         StringBuilder str = new StringBuilder();
+        int pos = 0;
         for (byte b : bytes) {
             if (opcion == 1) {
                 str.append(b & 0xFF);
                 str.append(".");
             }
             else if (opcion == 2) {
-                if (b == 0) continue;
                 str.append(String.format("%02X:", b));
+                pos++;
+                if (pos > 5) break;
             }
             else {
                 str.append(b & 0xFF);

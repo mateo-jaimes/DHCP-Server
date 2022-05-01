@@ -1,14 +1,13 @@
 package puj.redes;
 
-import puj.redes.Registros.ManejadorRegistros;
+import puj.redes.Registros.ControladorRegistros;
 import puj.redes.Registros.Registro;
-import puj.redes.Subredes.ManejadorSubredes;
+import puj.redes.Subredes.ControladorSubredes;
 import puj.redes.Subredes.Subred;
 
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,8 +29,8 @@ public class DHCPServidor {
 
         try {
             IPServidor = InetAddress.getLocalHost();
-            ManejadorSubredes servidorOpciones = new ManejadorSubredes();
-            ManejadorRegistros.cargarRegistros();
+            ControladorSubredes servidorOpciones = new ControladorSubredes();
+            ControladorRegistros.cargarRegistros();
             datagramSocket = new DatagramSocket(serverPort);
 
             byte[] buffer = new byte[MAX_BUFFER_SIZE];
@@ -107,14 +106,24 @@ public class DHCPServidor {
 
         switch (tipoRespuestaDHCP) {
             case DHCPOFFER:
-                registro = ManejadorRegistros.buscarRegistro(mensajeCliente.getChaddr(), mensajeCliente.getHlen());
+                registro = ControladorRegistros.buscarRegistro(mensajeCliente.getChaddr(), mensajeCliente.getHlen());
 
                 if (registro == null) {
                     registro = new Registro(mensajeCliente.getChaddr(), obtenerPrimeraIPLibre(mensajeCliente.getYiaddr()), new Date(), new Date(), hostname); // Revisar dates.
-                    ManejadorRegistros.anadirRegistro(registro);
+                    ControladorRegistros.anadirRegistro(registro);
                 }
 
-                opcionesDHCP.add(new DHCPOpciones());
+                Subred subred = obtenerSubred(mensajeCliente.getYiaddr());
+
+                // Opciones dentro del DHCP OFFER
+
+                opcionesDHCP.add(new DHCPOpciones((byte)53, new byte[]{(byte) tipoRespuestaDHCP.ordinal()})); // message type
+                opcionesDHCP.add(new DHCPOpciones((byte)54, IPServidor.getAddress())); // DHCP ip server
+                opcionesDHCP.add(new DHCPOpciones((byte)1, subred.getMascaraSubnet())); // mask subnet
+                opcionesDHCP.add(new DHCPOpciones((byte)3, subred.getPuertaEnlace())); // gateway
+                opcionesDHCP.add(new DHCPOpciones((byte)6, subred.getServidorDNS())); // IP servidor DNS
+                opcionesDHCP.add(new DHCPOpciones((byte)51, intToByte(subred.getTiempo()))); // revisar lease time.
+
                 respuestaCliente = new DHCPMensaje (
                         (byte)2, // op
                         (byte)1, // htype
@@ -198,22 +207,22 @@ public class DHCPServidor {
     }
 
     private static InetAddress obtenerPrimeraIPLibre(byte[] clienteIP) throws UnknownHostException {
-        byte[] primera = obtenerSubred(clienteIP).getRangoInicial();
+        byte[] actual = obtenerSubred(clienteIP).getRangoInicial();
         byte[] ultima = obtenerSubred(clienteIP).getRangoFinal();
-        byte[] actual = primera;
 
-        while (!Arrays.equals(actual, ultima)) {
-            if (!IPdisponible(actual)) {
+        while (!Arrays.equals(actual, ultima))
+            if (!IPdisponible(actual))
                 aumentarIP(actual);
-            } else return InetAddress.getByAddress(actual);
-        }
+            else
+                return InetAddress.getByAddress(actual);
+
 
         return null;
     }
 
     private static Subred obtenerSubred (byte[] clienteIP) {
-        ArrayList <Subred> subredes = ManejadorSubredes.getSubredes();
-        for (Subred subred : ManejadorSubredes.getSubredes()) {
+        ArrayList <Subred> subredes = ControladorSubredes.getSubredes();
+        for (Subred subred : ControladorSubredes.getSubredes()) {
             if (Arrays.equals(subred.getPuertaEnlace(), clienteIP))
                 return subred;
         }
@@ -221,7 +230,7 @@ public class DHCPServidor {
     }
 
     private static boolean IPdisponible (byte[] IP) {
-        for (Registro registro : ManejadorRegistros.getRegistros()) {
+        for (Registro registro : ControladorRegistros.getRegistros()) {
             if (Arrays.equals(IP, registro.getIP().getAddress())) return false;
         }
         return true;
@@ -242,7 +251,7 @@ public class DHCPServidor {
 
     private static Subred obtenerSubredDesdeIP (byte[] IP) {
         byte[] actual;
-        for (Subred subred : ManejadorSubredes.getSubredes()) {
+        for (Subred subred : ControladorSubredes.getSubredes()) {
             actual = subred.getRangoInicial();
 
             while (!Arrays.equals(actual, subred.getRangoFinal())) {
