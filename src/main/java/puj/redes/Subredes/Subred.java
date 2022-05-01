@@ -1,6 +1,6 @@
-package puj.redes.guia;
+package puj.redes.Subredes;
 
-private class Opcion {
+public class Subred {
     private byte[] rangoInicial;
     private byte[] rangoFinal;
     private byte[] mascaraSubnet;

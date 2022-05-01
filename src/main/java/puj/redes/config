@@ -1,21 +1,21 @@
-rangoinicial=192.168.134.15
+rangoinicial=192.168.134.12
 rangofinal=192.168.255.255
 mask=255.255.255.0
 puertaEnlace=192.168.134.1
 servidorDNS=4.2.2.4
 tiempo=86400
 
-rangoinicial=192.168.135.15
+rangoinicial=192.168.135.13
 rangofinal=192.168.255.255
 mask=255.255.255.0
 puertaEnlace=192.168.135.1
 servidorDNS=4.2.2.4
 tiempo=86400
 
-rangoinicial=192.168.134.15
+rangoinicial=192.168.134.14
 rangofinal=192.168.255.255
 mask=255.255.255.0
-puertaEnlace=192.168.134.1
+puertaEnlace=0.0.0.0
 servidorDNS=4.2.2.4
 tiempo=86400
 

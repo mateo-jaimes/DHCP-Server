@@ -1,4 +1,4 @@
-package puj.redes;
+package puj.redes.Registros;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -46,20 +46,25 @@ public class ManejadorRegistros {
             registro.setIP(InetAddress.getByName(lineas[1]));
             registro.setTiempoAcuse(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.ENGLISH).parse(lineas[2]));
             registro.setTiempoAsignado(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.ENGLISH).parse(lineas[3]));
-            registro.setHostname(lineas[4]);
+            try {
+                registro.setHostname(lineas[4]);
+            } catch (Exception e) {
+                registro.setHostname("");
+            }
 
             if (!registros.contains(registro))
                 registros.add(registro);
         }
     }
 
-    public static Registro buscarRegistro(byte[] chaddr) throws FileNotFoundException, ParseException, UnknownHostException {
+    public static Registro buscarRegistro(byte[] chaddr, int Hlen) throws FileNotFoundException, ParseException, UnknownHostException {
         actualizarRegistros();
+        byte[] chaddrSinPadding = new byte [Hlen];
+        System.arraycopy(chaddr, 0, chaddrSinPadding, 0, Hlen);
 
-        for (Registro registro : registros) {
-            if (Arrays.equals(registro.getChaddr(), chaddr))
+        for (Registro registro : registros)
+            if (Arrays.equals(registro.getChaddr(), chaddrSinPadding))
                 return registro;
-        }
 
         return null;
     }
