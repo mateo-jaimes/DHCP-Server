@@ -15,7 +15,7 @@ tiempo=86400
 rangoinicial=192.168.134.14
 rangofinal=192.168.255.255
 mask=255.255.255.0
-puertaEnlace=0.0.0.0
+puertaEnlace=192.168.134.1
 servidorDNS=4.2.2.4
 tiempo=86400
 
