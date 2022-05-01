@@ -3,7 +3,7 @@ package puj.redes;
 public class App {
 
     public static void main(String[] args) {
-        System.out.println("[!] Iniciando servidor DHCP...");
+        System.out.print("[!] Iniciando servidor DHCP en el puerto ");
         DHCPServidor servidor = new DHCPServidor();
     }
 }

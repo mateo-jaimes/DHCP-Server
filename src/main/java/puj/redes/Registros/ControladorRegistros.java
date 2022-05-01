@@ -1,9 +1,6 @@
 package puj.redes.Registros;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
@@ -22,7 +19,7 @@ public class ControladorRegistros {
 
     public static void cargarRegistros() throws FileNotFoundException, ParseException, UnknownHostException {
         actualizarRegistros();
-        System.out.println("[!] " + registros.size() + " cargados desde el archivo registro.txt");
+        System.out.println("\t-> " + registros.size() + " cargados desde el archivo registro.txt\n");
     }
 
     public static void actualizarRegistros() throws FileNotFoundException, UnknownHostException, ParseException {
@@ -46,6 +43,7 @@ public class ControladorRegistros {
             registro.setIP(InetAddress.getByName(lineas[1]));
             registro.setTiempoAcuse(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.ENGLISH).parse(lineas[2]));
             registro.setTiempoAsignado(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.ENGLISH).parse(lineas[3]));
+
             try {
                 registro.setHostname(lineas[4]);
             } catch (Exception e) {
@@ -58,7 +56,6 @@ public class ControladorRegistros {
     }
 
     public static Registro buscarRegistro(byte[] chaddr, int Hlen) throws FileNotFoundException, ParseException, UnknownHostException {
-        actualizarRegistros();
         byte[] chaddrSinPadding = new byte [Hlen];
         System.arraycopy(chaddr, 0, chaddrSinPadding, 0, Hlen);
 
@@ -71,7 +68,19 @@ public class ControladorRegistros {
 
     public static void anadirRegistro(Registro registro) throws IOException {
         registros.add(registro);
-        Files.write(Paths.get(pathArchivo), registro.toString().getBytes(), StandardOpenOption.APPEND);
+        escribirRegistros();
+    }
+
+    public static void eliminarRegistro(Registro registro) throws IOException {
+        registros.remove(registro);
+        escribirRegistros();
+    }
+
+    public static void escribirRegistros () throws IOException {
+        Writer fw = new FileWriter(pathArchivo, false);
+        for (Registro registro : registros)
+            fw.write(registro.toString());
+        fw.close();
     }
 
     public static ArrayList<Registro> getRegistros() {

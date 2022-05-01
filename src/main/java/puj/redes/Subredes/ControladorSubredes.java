@@ -25,7 +25,7 @@ public class ControladorSubredes {
             } while (bufferedReader.readLine() != null);
 
             in.close();
-            System.out.println("[!] Configuración cargada (" + subredes.size() + " subredes).");
+            System.out.println("\t-> Configuración cargada (" + subredes.size() + " subredes).");
     }
 
     static String obtenerValorConfig(BufferedReader br) throws IOException {
