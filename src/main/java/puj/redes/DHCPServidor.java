@@ -26,7 +26,7 @@ public class DHCPServidor {
     private static DatagramSocket datagramSocket = null;
 
     public DHCPServidor() {
-
+        System.out.println(serverPort + ".");
         try {
             IPServidor = InetAddress.getLocalHost();
             ControladorSubredes servidorOpciones = new ControladorSubredes();
@@ -36,13 +36,12 @@ public class DHCPServidor {
             byte[] buffer = new byte[MAX_BUFFER_SIZE];
 
             DatagramPacket datagramPacket = null;
-            System.out.println("[!] Servidor DHCP escuchando en el puerto [" + serverPort + "].");
 
             while (true) {
                 datagramPacket = new DatagramPacket(buffer, buffer.length);
                 datagramSocket.receive(datagramPacket);
 
-                System.out.println("[!] Mensaje recibido desde " + datagramPacket.getAddress());
+                System.out.print("[!] Mensaje recibido desde " + datagramPacket.getAddress() + "\t");
                 DHCPMensaje mensaje = new DHCPMensaje(datagramPacket);
                 //System.out.println(mensaje.toString());
                 procesarMensaje(mensaje);
@@ -59,7 +58,7 @@ public class DHCPServidor {
         // Guardar en el archivo la solicitud.
 
         TipoMensajeDHCP tipoMensajeDHCP = TipoMensajeDHCP.INVALID, tipoRespuestaDHCP = TipoMensajeDHCP.INVALID;
-        byte[] IPsolicitada, IPservidor, subnet, hostname = new byte[0];
+        byte[] IPsolicitada, IPservidor = new byte[4], subnet, hostname = new byte[0];
 
         for (DHCPOpciones opcion : mensaje.getOpcionesDHCP()) {
             switch (opcion.getType()) {
@@ -86,27 +85,51 @@ public class DHCPServidor {
             }
         }
 
+        Registro registro = ControladorRegistros.buscarRegistro(mensaje.getChaddr(), mensaje.getHlen());
+
         switch (tipoMensajeDHCP) {
             case DHCPDISCOVER:
                 tipoRespuestaDHCP = TipoMensajeDHCP.DHCPOFFER;
                 break;
+
+            case DHCPREQUEST:
+                System.out.println(Arrays.toString(IPservidor) + "-" + Arrays.toString(IPServidor.getAddress()));
+                if (InetAddress.getByAddress(IPservidor).equals(IPServidor))
+                    tipoRespuestaDHCP = TipoMensajeDHCP.DHCPACK;
+                else
+                    tipoRespuestaDHCP = TipoMensajeDHCP.DHCPNAK;
+
+                break;
+
+            case DHCPDECLINE:
+                break;
+
+            case DHCPRELEASE:
+                if (registro != null)
+                    ControladorRegistros.eliminarRegistro(registro);
+                break;
+
+            case DHCPINFORM:
+                if (registro != null)
+                    tipoRespuestaDHCP = TipoMensajeDHCP.DHCPACK;
+                break;
+
             default:
                 return;
         }
 
-        responderCliente(tipoRespuestaDHCP, mensaje, new String(hostname));
+        responderCliente(tipoRespuestaDHCP, mensaje, new String(hostname), registro);
     }
 // FILTRO WIRESHARK udp.port == 68
-    public static void responderCliente (TipoMensajeDHCP tipoRespuestaDHCP, DHCPMensaje mensajeCliente, String hostname) throws IOException, ParseException {
+    public static void responderCliente (TipoMensajeDHCP tipoRespuestaDHCP, DHCPMensaje mensajeCliente, String hostname, Registro registro) throws IOException, ParseException {
         InetAddress IPsolicitada;
-        Registro registro;
         DHCPMensaje respuestaCliente = null;
         indexRespuestaMensaje = 0;
         ArrayList <DHCPOpciones> opcionesDHCP = new ArrayList<>();
 
-        switch (tipoRespuestaDHCP) {
+        switch (tipoRespuestaDHCP) { // verificar si se puede quitar el switch, por el ordinal del enum.
             case DHCPOFFER:
-                registro = ControladorRegistros.buscarRegistro(mensajeCliente.getChaddr(), mensajeCliente.getHlen());
+            case DHCPNAK:
 
                 if (registro == null) {
                     registro = new Registro(mensajeCliente.getChaddr(), obtenerPrimeraIPLibre(mensajeCliente.getYiaddr()), new Date(), new Date(), hostname); // Revisar dates.
@@ -123,6 +146,8 @@ public class DHCPServidor {
                 opcionesDHCP.add(new DHCPOpciones((byte)3, subred.getPuertaEnlace())); // gateway
                 opcionesDHCP.add(new DHCPOpciones((byte)6, subred.getServidorDNS())); // IP servidor DNS
                 opcionesDHCP.add(new DHCPOpciones((byte)51, intToByte(subred.getTiempo()))); // revisar lease time.
+                opcionesDHCP.add(new DHCPOpciones((byte)59, intToByte((int) (subred.getTiempo() * 0.75)))); // revisar lease time.
+                opcionesDHCP.add(new DHCPOpciones((byte)58, intToByte((int) (subred.getTiempo() * 0.5)))); // revisar lease time.
 
                 respuestaCliente = new DHCPMensaje (
                         (byte)2, // op
@@ -144,23 +169,18 @@ public class DHCPServidor {
 
                 System.out.println("IP " + registro.getIP() + " asignada a la MAC " + DHCPMensaje.printByteArray(registro.getChaddr(),2));
                 break;
-
-            case DHCPACK:
-                break;
         }
-        enviarRespuestaCliente(respuestaCliente, InetAddress.getByName("255.255.255.255")); // poner el destination address...
+        enviarRespuestaCliente(respuestaCliente, InetAddress.getByName("255.255.255.255"), tipoRespuestaDHCP); // poner el destination address...
     }
 
-    private static void enviarRespuestaCliente (DHCPMensaje respuestaCliente, InetAddress IPCliente) throws IOException {
+    private static void enviarRespuestaCliente (DHCPMensaje respuestaCliente, InetAddress IPCliente, TipoMensajeDHCP tipoMensajeDHCP) throws IOException {
         mensajeToBytes(respuestaCliente);
 
-        System.out.println("[!] Servidor DHCP enviando respuesta al cliente [puerto: " + clientPort + "].");
-        DatagramPacket datagramPacket = new DatagramPacket(respuestaClienteBytes, respuestaClienteBytes.length, InetAddress.getByName("255.255.255.255"), clientPort);
-        //DatagramPacket datagramPacket = new DatagramPacket(prueba, prueba.length, IPCliente, clientPort);
+        DatagramPacket datagramPacket = new DatagramPacket(respuestaClienteBytes, respuestaClienteBytes.length, IPCliente, clientPort);
 
         datagramSocket.send(datagramPacket);
 
-        System.out.println("[!] Respuesta enviada al cliente " + datagramPacket.getAddress() + " [puerto: " + datagramPacket.getPort() + "]");
+        System.out.println("\t-> " + tipoMensajeDHCP.name() + " enviada a " + datagramPacket.getAddress() + "\n");
     }
 
     public static void agregarBytesMensaje(byte[] bytes) {
