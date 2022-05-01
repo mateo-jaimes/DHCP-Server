@@ -1,34 +1,31 @@
-package puj.redes;
-
-import puj.redes.guia.Opcion;
+package puj.redes.Subredes;
 
 import java.io.*;
 import java.net.InetAddress;
 import java.util.ArrayList;
 
-public class ServidorOpciones {
+public class ManejadorSubredes {
 
-    private static ArrayList<Opcion> opciones = new ArrayList<>();
+    private static ArrayList<Subred> subredes = new ArrayList<>();
 
-    public ServidorOpciones () throws Exception {
+    public ManejadorSubredes() throws Exception {
             FileInputStream fstream = new FileInputStream(System.getProperty("user.dir") + "/src/main/java/puj/redes/config");
             DataInputStream in = new DataInputStream(fstream);
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
 
-            Opcion nuevaOpcion = new Opcion();
-
             do {
+                Subred nuevaOpcion = new Subred();
                 nuevaOpcion.setRangoInicial(InetAddress.getByName(obtenerValorConfig(bufferedReader)).getAddress());
                 nuevaOpcion.setRangoFinal(InetAddress.getByName(obtenerValorConfig(bufferedReader)).getAddress());
                 nuevaOpcion.setMascaraSubnet(InetAddress.getByName(obtenerValorConfig(bufferedReader)).getAddress());
                 nuevaOpcion.setPuertaEnlace(InetAddress.getByName(obtenerValorConfig(bufferedReader)).getAddress());
                 nuevaOpcion.setServidorDNS(InetAddress.getByName(obtenerValorConfig(bufferedReader)).getAddress());
                 nuevaOpcion.setTiempo(Integer.parseInt(obtenerValorConfig(bufferedReader)));
-                opciones.add(nuevaOpcion);
+                subredes.add(nuevaOpcion);
             } while (bufferedReader.readLine() != null);
 
             in.close();
-            System.out.println("[!] Configuración cargada (" + opciones.size() + " subredes).");
+            System.out.println("[!] Configuración cargada (" + subredes.size() + " subredes).");
     }
 
     static String obtenerValorConfig(BufferedReader br) throws IOException {
@@ -40,11 +37,11 @@ public class ServidorOpciones {
         return null;
     }
 
-    public static ArrayList<Opcion> getOpciones() {
-        return opciones;
+    public static ArrayList<Subred> getSubredes() {
+        return subredes;
     }
 
-    public void setOpciones(ArrayList<Opcion> opciones) {
-        this.opciones = opciones;
+    public void setSubredes(ArrayList<Subred> subredes) {
+        ManejadorSubredes.subredes = subredes;
     }
 }

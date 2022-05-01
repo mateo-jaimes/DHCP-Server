@@ -1,4 +1,6 @@
-package puj.redes;
+package puj.redes.Registros;
+
+import puj.redes.DHCPMensaje;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -66,10 +68,10 @@ public class Registro {
 
     @Override
     public String toString() {
-        return DHCPMensaje.printByteArray(chaddr, 2) + "," +
-                DHCPMensaje.printByteArray(IP.getAddress(), 1) + "," +
-                tiempoAcuse + "," +
-                tiempoAsignado + "," +
-                hostname;
+        return DHCPMensaje.printByteArray(chaddr, 2) + ", " +
+                DHCPMensaje.printByteArray(IP.getAddress(), 1) + ", " +
+                tiempoAcuse + ", " +
+                tiempoAsignado + ", " +
+                hostname + "\n";
     }
 }

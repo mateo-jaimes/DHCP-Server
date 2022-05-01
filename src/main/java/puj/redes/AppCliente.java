@@ -22,12 +22,9 @@ public class AppCliente {
 
         try {
             while (true) {
-
+                System.out.println("");
             }
-        } catch (SocketException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
