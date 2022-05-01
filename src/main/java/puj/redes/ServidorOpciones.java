@@ -1,12 +1,14 @@
 package puj.redes;
 
+import puj.redes.guia.Opcion;
+
 import java.io.*;
 import java.net.InetAddress;
 import java.util.ArrayList;
 
 public class ServidorOpciones {
 
-    private ArrayList<Opcion> opciones = new ArrayList<>();
+    private static ArrayList<Opcion> opciones = new ArrayList<>();
 
     public ServidorOpciones () throws Exception {
             FileInputStream fstream = new FileInputStream(System.getProperty("user.dir") + "/src/main/java/puj/redes/config");
@@ -18,17 +20,15 @@ public class ServidorOpciones {
             do {
                 nuevaOpcion.setRangoInicial(InetAddress.getByName(obtenerValorConfig(bufferedReader)).getAddress());
                 nuevaOpcion.setRangoFinal(InetAddress.getByName(obtenerValorConfig(bufferedReader)).getAddress());
-                nuevaOpcion.setIP(InetAddress.getByName(obtenerValorConfig(bufferedReader)).getAddress());
                 nuevaOpcion.setMascaraSubnet(InetAddress.getByName(obtenerValorConfig(bufferedReader)).getAddress());
                 nuevaOpcion.setPuertaEnlace(InetAddress.getByName(obtenerValorConfig(bufferedReader)).getAddress());
                 nuevaOpcion.setServidorDNS(InetAddress.getByName(obtenerValorConfig(bufferedReader)).getAddress());
                 nuevaOpcion.setTiempo(Integer.parseInt(obtenerValorConfig(bufferedReader)));
-                this.opciones.add(nuevaOpcion);
+                opciones.add(nuevaOpcion);
             } while (bufferedReader.readLine() != null);
 
             in.close();
-            System.out.println("[!] Configuración cargada.");
-
+            System.out.println("[!] Configuración cargada (" + opciones.size() + " subredes).");
     }
 
     static String obtenerValorConfig(BufferedReader br) throws IOException {
@@ -40,73 +40,7 @@ public class ServidorOpciones {
         return null;
     }
 
-    private class Opcion {
-        private byte[] rangoInicial;
-        private byte[] rangoFinal;
-        private byte[] IP;
-        private byte[] mascaraSubnet;
-        private byte[] puertaEnlace;
-        private byte[] servidorDNS;
-        private Integer tiempo;
-
-        public Integer getTiempo() {
-            return tiempo;
-        }
-
-        public void setTiempo(Integer tiempo) {
-            this.tiempo = tiempo;
-        }
-
-        public byte[] getRangoInicial() {
-            return rangoInicial;
-        }
-
-        public void setRangoInicial(byte[] rangoInicial) {
-            this.rangoInicial = rangoInicial;
-        }
-
-        public byte[] getRangoFinal() {
-            return rangoFinal;
-        }
-
-        public void setRangoFinal(byte[] rangoFinal) {
-            this.rangoFinal = rangoFinal;
-        }
-
-        public byte[] getIP() {
-            return IP;
-        }
-
-        public void setIP(byte[] IP) {
-            this.IP = IP;
-        }
-
-        public byte[] getMascaraSubnet() {
-            return mascaraSubnet;
-        }
-
-        public void setMascaraSubnet(byte[] mascaraSubnet) {
-            this.mascaraSubnet = mascaraSubnet;
-        }
-
-        public byte[] getPuertaEnlace() {
-            return puertaEnlace;
-        }
-
-        public void setPuertaEnlace(byte[] puertaEnlace) {
-            this.puertaEnlace = puertaEnlace;
-        }
-
-        public byte[] getServidorDNS() {
-            return servidorDNS;
-        }
-        public void setServidorDNS(byte[] servidorDNS) {
-            this.servidorDNS = servidorDNS;
-        }
-
-    }
-
-    public ArrayList<Opcion> getOpciones() {
+    public static ArrayList<Opcion> getOpciones() {
         return opciones;
     }
 

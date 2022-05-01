@@ -5,6 +5,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.Date;
 
 public class AppCliente {
     private static final int MAX_BUFFER_SIZE = 1024;
@@ -20,37 +21,9 @@ public class AppCliente {
         DatagramSocket socket = null;
 
         try {
-            socket = new DatagramSocket(listenPort);
+            while (true) {
 
-            byte[] IPprueba = {5, 5, 5, 5};
-            byte[] chaddr = {(byte) 192, (byte) 168, 0 , 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-            //DHCPOpciones op = new DHCPOpciones(1, 1, new byte[]);
-
-            DHCPMensaje mensajeDHCP = new DHCPMensaje(
-                    (byte)1,
-                    (byte)1,
-                    (byte)15,
-                    (byte)15,
-                    (byte)5,
-                    (short)5,
-                    (short)2,
-                    IPprueba,
-                    IPprueba,
-                    IPprueba,
-                    IPprueba,
-                    chaddr,
-                    chaddr, // Arreglar
-                    IPprueba,
-                    IPprueba);
-
-            mensajeToBytes(mensajeDHCP);
-
-            DatagramPacket datagramPacket = new DatagramPacket(mensaje, mensaje.length, InetAddress.getByName(serverIP), serverPort);
-
-            socket.send(datagramPacket);
-            System.out.println(mensajeDHCP.toString());
-
+            }
         } catch (SocketException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

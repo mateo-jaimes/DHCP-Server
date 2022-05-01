@@ -44,7 +44,7 @@ public class DHCPMensaje implements Serializable {
             this.file = extraerBytes(datagramPacket.getData(), 108, 128);
             byte[] temp = extraerBytes(datagramPacket.getData(), 240, datagramPacket.getLength() - 240);
 
-            for (int i = 0; i < temp.length - 1; i += temp[i+1] + 2) {
+            for (int i = 0; temp[i] != -1; i += temp[i+1] + 2) { // temp[i] != -1 indicando que el ultimo campo es -1 (byte 255) indicando el final del campo opciones.
                 DHCPOpciones opcionDHCP = new DHCPOpciones();
                 opcionDHCP.setType(temp[i]);
                 opcionDHCP.setLength(temp[i+1]);
@@ -59,7 +59,7 @@ public class DHCPMensaje implements Serializable {
         }
     }
 
-    public DHCPMensaje(byte op, byte htype, byte hlen, byte hops, int xid, short secs, short flags, byte[] ciaddr, byte[] yiaddr, byte[] siaddr, byte[] giaddr, byte[] chaddr, byte[] sname, byte[] file, byte[] opciones) {
+    public DHCPMensaje(byte op, byte htype, byte hlen, byte hops, int xid, short secs, short flags, byte[] ciaddr, byte[] yiaddr, byte[] siaddr, byte[] giaddr, byte[] chaddr, byte[] sname, byte[] file, ArrayList <DHCPOpciones> opcionesDHCP) {
         this.op = op;
         this.htype = htype;
         this.hlen = hlen;
@@ -74,7 +74,7 @@ public class DHCPMensaje implements Serializable {
         this.chaddr = chaddr;
         this.sname = sname;
         this.file = file;
-        this.opciones = opciones;
+        this.opcionesDHCP = opcionesDHCP;
     }
 
     public byte getOp() {
@@ -225,14 +225,36 @@ public class DHCPMensaje implements Serializable {
                 "\nxid: " + xid +
                 "\nsecs: " + secs +
                 "\nflags: " + flags +
-                "\nciaddr: " + Arrays.toString(ciaddr) +
-                "\nyiaddr: " + Arrays.toString(yiaddr) +
-                "\nsiaddr: " + Arrays.toString(siaddr) +
-                "\ngiaddr: " + Arrays.toString(giaddr) +
-                "\nchaddr: " + Arrays.toString(chaddr) +
-                "\nsname: " + Arrays.toString(sname) +
-                "\nfile: " + Arrays.toString(file) +
+                "\nciaddr: " + printByteArray(ciaddr, 1) +
+                "\nyiaddr: " + printByteArray(yiaddr, 1) +
+                "\nsiaddr: " + printByteArray(siaddr, 1) +
+                "\ngiaddr: " + printByteArray(giaddr, 1) +
+                "\nchaddr: " + printByteArray(chaddr, 2) +
+                "\nsname: " + printByteArray(sname, 0) +
+                "\nfile: " + printByteArray(file, 0) +
                 "\nopciones: " + opcionesDHCP.toString() +
                 "\n";
+    }
+
+    public static String printByteArray(byte[] bytes, int opcion) {
+        // opcion 1 = IP
+        // opcion 2 = MAC
+        // else print normal
+        StringBuilder str = new StringBuilder();
+        for (byte b : bytes) {
+            if (opcion == 1) {
+                str.append(b & 0xFF);
+                str.append(".");
+            }
+            else if (opcion == 2) {
+                if (b == 0) continue;
+                str.append(String.format("%02X:", b));
+            }
+            else {
+                str.append(b & 0xFF);
+                str.append(" ");
+            }
+        }
+        return str.toString().substring(0, str.length() - 1);
     }
 }
