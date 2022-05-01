@@ -5,13 +5,17 @@ import puj.redes.Registros.Registro;
 import puj.redes.Subredes.ControladorSubredes;
 import puj.redes.Subredes.Subred;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.StringTokenizer;
 
 public class DHCPServidor {
 
@@ -20,15 +24,18 @@ public class DHCPServidor {
     private static final int serverPort = 67;
     private static InetAddress IPServidor;
     private static final int clientPort = 68;
+    private static InetAddress serverGateway = null;
 
     private static byte[] respuestaClienteBytes = new byte[1000];
     private static Integer indexRespuestaMensaje = 0;
     private static DatagramSocket datagramSocket = null;
 
     public DHCPServidor() {
-        System.out.println(serverPort + ".");
         try {
             IPServidor = InetAddress.getLocalHost();
+            serverGateway = obtenerGateway();
+            System.out.println(serverPort + " - gateway: " + serverGateway);
+
             ControladorSubredes servidorOpciones = new ControladorSubredes();
             ControladorRegistros.cargarRegistros();
             datagramSocket = new DatagramSocket(serverPort);
@@ -52,6 +59,29 @@ public class DHCPServidor {
             // Hacer manejo de excepcion...
             e.printStackTrace();
         }
+    }
+
+    private static InetAddress obtenerGateway() throws IOException {
+        String gateway;
+        Process result = Runtime.getRuntime().exec("netstat -rn");
+
+        BufferedReader output = new BufferedReader(new InputStreamReader(result.getInputStream()));
+
+        String line = output.readLine();
+        while (line != null){
+            if (line.trim().startsWith("default") || line.trim().startsWith("0.0.0.0"))
+                break;
+            line = output.readLine();
+        }
+
+        if (line==null) // gateway not found;
+            return null;
+
+        StringTokenizer st = new StringTokenizer( line );
+        st.nextToken();
+        st.nextToken();
+        gateway = st.nextToken();
+        return InetAddress.getByName(gateway);
     }
 
     private static void procesarMensaje(DHCPMensaje mensaje) throws Exception {
@@ -93,7 +123,7 @@ public class DHCPServidor {
                 break;
 
             case DHCPREQUEST:
-                System.out.println(Arrays.toString(IPservidor) + "-" + Arrays.toString(IPServidor.getAddress()));
+                //System.out.println(Arrays.toString(IPservidor) + "-" + Arrays.toString(IPServidor.getAddress()));
                 if (InetAddress.getByAddress(IPservidor).equals(IPServidor))
                     tipoRespuestaDHCP = TipoMensajeDHCP.DHCPACK;
                 else
@@ -128,9 +158,9 @@ public class DHCPServidor {
         ArrayList <DHCPOpciones> opcionesDHCP = new ArrayList<>();
 
         switch (tipoRespuestaDHCP) { // verificar si se puede quitar el switch, por el ordinal del enum.
-            case DHCPOFFER:
             case DHCPNAK:
-
+                return;
+            case DHCPOFFER:
                 if (registro == null) {
                     registro = new Registro(mensajeCliente.getChaddr(), obtenerPrimeraIPLibre(mensajeCliente.getYiaddr()), new Date(), new Date(), hostname); // Revisar dates.
                     ControladorRegistros.anadirRegistro(registro);
@@ -223,7 +253,13 @@ public class DHCPServidor {
 
         agregarBytesMensaje(intToByte(0x63825363)); // magic cookie
 
-        //agregarBytesMensaje(mensajeDHCP.getOpciones());
+        for (DHCPOpciones opcion : mensajeDHCP.getOpcionesDHCP()) {
+            agregarBytesMensaje(new byte[] {opcion.getType()});
+            agregarBytesMensaje(new byte[] {opcion.getLength()});
+            agregarBytesMensaje(opcion.getValue());
+        }
+
+        agregarBytesMensaje(new byte[] {(byte)255});
     }
 
     private static InetAddress obtenerPrimeraIPLibre(byte[] clienteIP) throws UnknownHostException {
@@ -241,7 +277,9 @@ public class DHCPServidor {
     }
 
     private static Subred obtenerSubred (byte[] clienteIP) {
-        ArrayList <Subred> subredes = ControladorSubredes.getSubredes();
+        if (Arrays.equals(clienteIP, new byte[] {0, 0, 0, 0}))
+            clienteIP = serverGateway.getAddress();
+
         for (Subred subred : ControladorSubredes.getSubredes()) {
             if (Arrays.equals(subred.getPuertaEnlace(), clienteIP))
                 return subred;

@@ -58,15 +58,21 @@ public class ControladorRegistros {
     public static Registro buscarRegistro(byte[] chaddr, int Hlen) throws FileNotFoundException, ParseException, UnknownHostException {
         byte[] chaddrSinPadding = new byte [Hlen];
         System.arraycopy(chaddr, 0, chaddrSinPadding, 0, Hlen);
+        // System.out.println("Buscando : " + Arrays.toString(chaddrSinPadding));
 
-        for (Registro registro : registros)
+        for (Registro registro : registros) {
+            //System.out.println(Arrays.toString(registro.getChaddr()));
             if (Arrays.equals(registro.getChaddr(), chaddrSinPadding))
                 return registro;
+        }
 
         return null;
     }
 
     public static void anadirRegistro(Registro registro) throws IOException {
+        byte[] buff = new byte[6];
+        System.arraycopy(registro.getChaddr(), 0, buff, 0, 6);
+        registro.setChaddr(buff);
         registros.add(registro);
         escribirRegistros();
     }
