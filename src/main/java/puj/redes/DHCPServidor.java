@@ -144,9 +144,9 @@ public class DHCPServidor {
                         tipoRespuestaDHCP = TipoMensajeDHCP.DHCPACK;
                     }
                     if (registro != null) {
-                        if (InetAddress.getByAddress(IPservidor).equals(IPServidor) && Arrays.equals(registro.getIP().getAddress(), IPsolicitada)) {
+                        //if (InetAddress.getByAddress(IPservidor).equals(IPServidor) && Arrays.equals(registro.getIP().getAddress(), IPsolicitada)) {
                             tipoRespuestaDHCP = TipoMensajeDHCP.DHCPACK;
-                        }
+                        //}
                     }
                     else {
                         tipoRespuestaDHCP = TipoMensajeDHCP.DHCPNAK;
@@ -230,12 +230,18 @@ public class DHCPServidor {
                 opcionesDHCP
         );
 
+
         InetAddress IPrespuesta = null;
 
-        if (mensajeCliente.getIpsource().equals(InetAddress.getByName("0.0.0.0")))
+        if (mensajeCliente.getIpsource().equals(InetAddress.getByName("0.0.0.0"))) {
             IPrespuesta = InetAddress.getByName("255.255.255.255");
+        }
         else
             IPrespuesta = InetAddress.getByAddress(obtenerSubredDesdeIP(mensajeCliente.getIpsource().getAddress()).getPuertaEnlace());
+
+        if (mensajeCliente.getChaddr().equals(new byte[] {0,0,0,0}))
+            respuestaCliente.setGiaddr(new byte [] {0,0,0,0});
+
 
         System.out.println("IP: " + registro.getIP() + " | MAC: " + DHCPMensaje.printByteArray(registro.getChaddr(), 2) + " | " + registro.getTiempoACK() + " -> " + registro.getTiempoRetirar() + " (" + subred.getTiempo() + " segs).");
         enviarRespuestaCliente(respuestaCliente, IPrespuesta, tipoRespuestaDHCP);
@@ -245,7 +251,7 @@ public class DHCPServidor {
         mensajeToBytes(respuestaCliente);
 
         DatagramPacket datagramPacket = null;
-        if (Arrays.equals(IPCliente.getAddress(), new byte[] {0, 0, 0, 0}))
+        if (Arrays.equals(IPCliente.getAddress(), new byte[] {(byte) 255, (byte) 255, (byte) 255, (byte) 255}))
             datagramPacket = new DatagramPacket(respuestaClienteBytes, respuestaClienteBytes.length, IPCliente, clientPort);
         else
             datagramPacket = new DatagramPacket(respuestaClienteBytes, respuestaClienteBytes.length, IPCliente, routePort);
