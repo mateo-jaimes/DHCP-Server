@@ -18,7 +18,7 @@ public class ThreadRevocaciones extends Thread {
                 }
 
                 registrosEliminar = ControladorRegistros.obtenerFechaReciente();
-                sleep(1500);
+                sleep(3000);
 
                 for (Registro registro : registrosEliminar)
                     ControladorRegistros.eliminarRegistro(registro);

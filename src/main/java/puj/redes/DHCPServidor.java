@@ -132,7 +132,7 @@ public class DHCPServidor {
                     if (!Arrays.equals(mensaje.getCiaddr(), new byte[]{0, 0, 0, 0})) { // renew.
                         Registro reg = ControladorRegistros.buscarRegistro(mensaje.getChaddr(), mensaje.getHlen());
                         if (reg != null)
-                            if (!Arrays.equals(reg.getIP().getAddress(), IPsolicitada))
+                            if (!Arrays.equals(reg.getIP().getAddress(), IPsolicitada) && !Arrays.equals(IPsolicitada, new byte[]{0, 0, 0, 0}))
                                 break;
 
                        ControladorRegistros.eliminarRegistro(reg);
@@ -235,7 +235,7 @@ public class DHCPServidor {
         if (mensajeCliente.getIpsource().equals(InetAddress.getByName("0.0.0.0")))
             IPrespuesta = InetAddress.getByName("255.255.255.255");
         else
-            IPrespuesta = mensajeCliente.getIpsource();
+            IPrespuesta = InetAddress.getByAddress(obtenerSubredDesdeIP(mensajeCliente.getIpsource().getAddress()).getPuertaEnlace());
 
         System.out.println("IP: " + registro.getIP() + " | MAC: " + DHCPMensaje.printByteArray(registro.getChaddr(), 2) + " | " + registro.getTiempoACK() + " -> " + registro.getTiempoRetirar() + " (" + subred.getTiempo() + " segs).");
         enviarRespuestaCliente(respuestaCliente, IPrespuesta, tipoRespuestaDHCP);
@@ -322,6 +322,9 @@ public class DHCPServidor {
         for (Subred subred : ControladorSubredes.getSubredes()) {
             byte[] actual = subred.getRangoInicial();
             byte[] ultima = subred.getRangoFinal();
+
+            if (Arrays.equals(IPcliente, subred.getPuertaEnlace()))
+                return subred;
 
             while (!Arrays.equals(actual, ultima))
                 if (Arrays.equals(actual, IPcliente))
