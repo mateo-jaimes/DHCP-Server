@@ -3,6 +3,7 @@ package puj.redes;
 import puj.redes.Registros.ControladorLog;
 import puj.redes.Registros.ControladorRegistros;
 import puj.redes.Registros.Registro;
+import puj.redes.Registros.ThreadRevocaciones;
 import puj.redes.Subredes.ControladorSubredes;
 import puj.redes.Subredes.Subred;
 
@@ -24,7 +25,6 @@ public class DHCPServidor {
     private static final int clientPort = 68;
     private static InetAddress IPServidor;
     private static InetAddress serverGateway = null;
-    private static InetAddress IPrespuesta = null;
 
     private static byte[] respuestaClienteBytes = new byte[1000];
     private static Integer indexRespuestaMensaje = 0;
@@ -32,6 +32,8 @@ public class DHCPServidor {
 
     public DHCPServidor() {
         try {
+            Thread thread = new ThreadRevocaciones();
+            thread.start();
             IPServidor = InetAddress.getLocalHost();
             serverGateway = obtenerGateway();
             System.out.println(serverPort + " - gateway: " + serverGateway);
@@ -123,12 +125,12 @@ public class DHCPServidor {
 
                 case DHCPREQUEST:
                     if (registro != null) {
-                        if (InetAddress.getByAddress(IPservidor).equals(IPServidor) && Arrays.equals(registro.getIP().getAddress(), IPsolicitada))
+                        if (InetAddress.getByAddress(IPservidor).equals(IPServidor) && Arrays.equals(registro.getIP().getAddress(), IPsolicitada)) {
                             tipoRespuestaDHCP = TipoMensajeDHCP.DHCPACK;
+                        }
                     }
                     else {
                         tipoRespuestaDHCP = TipoMensajeDHCP.DHCPNAK;
-                        registro.setTiempoACK(new Date());
                     }
 
                 case DHCPDECLINE:
@@ -166,7 +168,8 @@ public class DHCPServidor {
         ArrayList <DHCPOpciones> opcionesDHCP = new ArrayList<>();
 
         if (registro == null) {
-            registro = new Registro(mensajeCliente.getChaddr(), obtenerPrimeraIPLibre(mensajeCliente.getIpsource().getAddress()), new Date(), new Date(), hostname); // Revisar dates.
+            registro = new Registro(mensajeCliente.getChaddr(), obtenerPrimeraIPLibre(mensajeCliente.getIpsource().getAddress()), new Date(), new Date(), hostname);
+            registro.setTiempoRetirar(new Date (System.currentTimeMillis() + obtenerSubred(registro.getIP().getAddress()).getTiempo() * 1000)); // secs to millis
             ControladorRegistros.anadirRegistro(registro);
             ControladorLog.escribir(registro.getChaddr(), tipoMensajeDHCP, tipoRespuestaDHCP);
         }
@@ -204,6 +207,7 @@ public class DHCPServidor {
 
         System.out.println("IP " + registro.getIP() + " asignada a la MAC " + DHCPMensaje.printByteArray(registro.getChaddr(), 2));
 
+        InetAddress IPrespuesta = null;
         if (mensajeCliente.getIpsource().equals(InetAddress.getByName("0.0.0.0")))
             IPrespuesta = InetAddress.getByName("255.255.255.255");
         else
