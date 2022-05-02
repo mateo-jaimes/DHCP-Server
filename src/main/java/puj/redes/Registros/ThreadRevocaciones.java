@@ -6,6 +6,7 @@ import java.util.Date;
 public class ThreadRevocaciones extends Thread {
     public void run () {
         try {
+            System.out.println("hilo corriendo");
             Date date = null;
             while (true) {
                 if (ControladorRegistros.getRegistros().size() == 0) {
