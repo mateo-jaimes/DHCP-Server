@@ -85,15 +85,15 @@ public class ControladorRegistros {
         fw.close();
     }
 
-    public static Registro obtenerFechaReciente () {
-        Registro reg = null;
-        Date reciente = new Date(3000, Calendar.DECEMBER, 31);
+    public static ArrayList <Registro> obtenerFechaReciente () {
+        ArrayList <Registro> regs = new ArrayList<>();
+        Date date = new Date();
 
         for (Registro registro : registros)
-            if (registro.getTiempoRetirar().before(reciente))
-                reg = registro;
+            if (registro.getTiempoRetirar().before(date))
+                regs.add(registro);
 
-        return reg;
+        return regs;
     }
 
     public static ArrayList<Registro> getRegistros() {
