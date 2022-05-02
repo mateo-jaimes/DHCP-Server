@@ -7,11 +7,13 @@ import puj.redes.Registros.ThreadRevocaciones;
 import puj.redes.Subredes.ControladorSubredes;
 import puj.redes.Subredes.Subred;
 
+import javax.naming.ldap.Control;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -23,6 +25,8 @@ public class DHCPServidor {
 
     private static final int serverPort = 67;
     private static final int clientPort = 68;
+    private static final int routePort = 67;
+
     private static InetAddress IPServidor;
     private static InetAddress serverGateway = null;
 
@@ -126,10 +130,16 @@ public class DHCPServidor {
 
                 case DHCPREQUEST:
                     if (!Arrays.equals(mensaje.getCiaddr(), new byte[]{0, 0, 0, 0})) { // renew.
-                        //thread.start();
+                        Registro reg = ControladorRegistros.buscarRegistro(mensaje.getChaddr(), mensaje.getHlen());
+                        if (reg != null)
+                            if (!Arrays.equals(reg.getIP().getAddress(), IPsolicitada) && !Arrays.equals(IPsolicitada, new byte[]{0, 0, 0, 0}))
+                                break;
+
+                       ControladorRegistros.eliminarRegistro(reg);
+
                         registro = new Registro(mensaje.getChaddr(), InetAddress.getByAddress(mensaje.getCiaddr()), new Date(), new Date(), new String(hostname));
                         registro.setTiempoRetirar(new Date (System.currentTimeMillis() + obtenerSubredDesdeIP(mensaje.getCiaddr()).getTiempo() * 1000)); // secs to millis
-                        ControladorRegistros.anadirRegistro(registro);
+                       ControladorRegistros.anadirRegistro(registro);
                         ControladorLog.escribir(registro.getChaddr(), tipoMensajeDHCP, tipoRespuestaDHCP);
                         tipoRespuestaDHCP = TipoMensajeDHCP.DHCPACK;
                     }
@@ -213,29 +223,32 @@ public class DHCPServidor {
                 new byte[]{0, 0, 0, 0}, // ciaddr
                 registro.getIP().getAddress(), // ip
                 IPServidor.getAddress(), // ip sv
-                new byte[]{0, 0, 0, 0}, // giaddr
+                mensajeCliente.getIpsource().getAddress(), // giaddr
                 mensajeCliente.getChaddr(), // chaddr
                 new byte[]{0}, // sname
                 new byte[]{0}, // sfile
                 opcionesDHCP
         );
 
-        System.out.println("IP " + registro.getIP() + " asignada a la MAC " + DHCPMensaje.printByteArray(registro.getChaddr(), 2));
-
         InetAddress IPrespuesta = null;
 
         if (mensajeCliente.getIpsource().equals(InetAddress.getByName("0.0.0.0")))
             IPrespuesta = InetAddress.getByName("255.255.255.255");
         else
-            IPrespuesta = registro.getIP();
+            IPrespuesta = InetAddress.getByAddress(obtenerSubredDesdeIP(mensajeCliente.getIpsource().getAddress()).getPuertaEnlace());
 
+        System.out.println("IP: " + registro.getIP() + " | MAC: " + DHCPMensaje.printByteArray(registro.getChaddr(), 2) + " | " + registro.getTiempoACK() + " -> " + registro.getTiempoRetirar() + " (" + subred.getTiempo() + " segs).");
         enviarRespuestaCliente(respuestaCliente, IPrespuesta, tipoRespuestaDHCP);
     }
 
     private static void enviarRespuestaCliente (DHCPMensaje respuestaCliente, InetAddress IPCliente, TipoMensajeDHCP tipoMensajeDHCP) throws IOException {
         mensajeToBytes(respuestaCliente);
 
-        DatagramPacket datagramPacket = new DatagramPacket(respuestaClienteBytes, respuestaClienteBytes.length, IPCliente, clientPort);
+        DatagramPacket datagramPacket = null;
+        if (Arrays.equals(IPCliente.getAddress(), new byte[] {0, 0, 0, 0}))
+            datagramPacket = new DatagramPacket(respuestaClienteBytes, respuestaClienteBytes.length, IPCliente, clientPort);
+        else
+            datagramPacket = new DatagramPacket(respuestaClienteBytes, respuestaClienteBytes.length, IPCliente, routePort);
 
         datagramSocket.send(datagramPacket);
 
@@ -309,6 +322,9 @@ public class DHCPServidor {
         for (Subred subred : ControladorSubredes.getSubredes()) {
             byte[] actual = subred.getRangoInicial();
             byte[] ultima = subred.getRangoFinal();
+
+            if (Arrays.equals(IPcliente, subred.getPuertaEnlace()))
+                return subred;
 
             while (!Arrays.equals(actual, ultima))
                 if (Arrays.equals(actual, IPcliente))
