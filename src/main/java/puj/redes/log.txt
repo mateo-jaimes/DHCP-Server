@@ -1,2 +1,6 @@
 [Mon May 02 00:11:26 COT 2022] 18:C0:4D:52:CD:9F | DHCPDISCOVER -> RESPUESTA: DHCPOFFER
 [Mon May 02 00:11:26 COT 2022] 18:C0:4D:52:CD:9F | DHCPDISCOVER -> Error: No existe la subred dentro del archivo de configuraciones (gateway /192.168.20.1).
+[Mon May 02 00:33:30 COT 2022] 6E:A7:E5:76:3A:2B | DHCPDISCOVER -> Error: No existe la subred dentro del archivo de configuraciones (gateway /192.168.20.1).
+[Mon May 02 00:33:31 COT 2022] 6E:A7:E5:76:3A:2B | DHCPREQUEST -> Error: No existe la subred dentro del archivo de configuraciones (gateway /192.168.20.1).
+[Mon May 02 00:33:41 COT 2022] 6E:A7:E5:76:3A:2B | DHCPREQUEST -> Error: No existe la subred dentro del archivo de configuraciones (gateway /192.168.20.1).
+[Mon May 02 00:33:48 COT 2022] 6E:A7:E5:76:3A:2B | DHCPREQUEST -> Error: No existe la subred dentro del archivo de configuraciones (gateway /192.168.20.1).

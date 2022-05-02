@@ -7,10 +7,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.Scanner;
+import java.util.*;
 
 public class ControladorRegistros {
     private static final String pathArchivo = System.getProperty("user.dir") + "/src/main/java/puj/redes/registro.txt";
@@ -86,6 +83,17 @@ public class ControladorRegistros {
         for (Registro registro : registros)
             fw.write(registro.toString() + "\n");
         fw.close();
+    }
+
+    public static Registro obtenerFechaReciente () {
+        Registro reg = null;
+        Date reciente = new Date(3000, Calendar.DECEMBER, 31);
+
+        for (Registro registro : registros)
+            if (registro.getTiempoRetirar().before(reciente))
+                reg = registro;
+
+        return reg;
     }
 
     public static ArrayList<Registro> getRegistros() {

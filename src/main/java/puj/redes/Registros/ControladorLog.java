@@ -21,7 +21,7 @@ public class ControladorLog {
     }
 
     public static void escribir(byte[] chaddr, TipoMensajeDHCP tipoMensajeDHCP, TipoMensajeDHCP tipoRespuestaDHCP) throws IOException {
-        if (tipoRespuestaDHCP == TipoMensajeDHCP.INVALID)
+        if (tipoRespuestaDHCP == TipoMensajeDHCP.INVALID && tipoMensajeDHCP != TipoMensajeDHCP.DHCPRELEASE)
             return;
         nuevoRegistroLog(chaddr, tipoMensajeDHCP);
         fw.write("Respuesta: " + tipoRespuestaDHCP);
