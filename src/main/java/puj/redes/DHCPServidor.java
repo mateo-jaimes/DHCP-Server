@@ -1,5 +1,6 @@
 package puj.redes;
 
+import puj.redes.Registros.ControladorLog;
 import puj.redes.Registros.ControladorRegistros;
 import puj.redes.Registros.Registro;
 import puj.redes.Subredes.ControladorSubredes;
@@ -20,9 +21,10 @@ public class DHCPServidor {
     private static final int MAX_BUFFER_SIZE = 65535;
 
     private static final int serverPort = 67;
-    private static InetAddress IPServidor;
     private static final int clientPort = 68;
+    private static InetAddress IPServidor;
     private static InetAddress serverGateway = null;
+    private static InetAddress IPrespuesta = null;
 
     private static byte[] respuestaClienteBytes = new byte[1000];
     private static Integer indexRespuestaMensaje = 0;
@@ -46,20 +48,18 @@ public class DHCPServidor {
                 datagramPacket = new DatagramPacket(buffer, buffer.length);
                 datagramSocket.receive(datagramPacket);
 
-                System.out.print("[!] Mensaje recibido desde " + datagramPacket.getAddress() + "\t");
                 DHCPMensaje mensaje = new DHCPMensaje(datagramPacket);
+                System.out.print("[!] Mensaje recibido desde " + datagramPacket.getAddress() + " [" + DHCPMensaje.printByteArray(mensaje.getChaddr(),2) + "] ");
                 //System.out.println(mensaje.toString());
                 procesarMensaje(mensaje);
-
-                // Se recibe un mensaje DHCP...
             }
+
         } catch (Exception e) {
-            // Hacer manejo de excepcion...
-            e.printStackTrace();
+            System.out.println("[!] Ocurrió un error durante el procesamiento del mensaje.");
         }
     }
 
-    private static InetAddress obtenerGateway() throws IOException {
+    private static InetAddress obtenerGateway() throws Exception {
         String gateway;
         Process result = Runtime.getRuntime().exec("netstat -rn");
 
@@ -72,8 +72,8 @@ public class DHCPServidor {
             line = output.readLine();
         }
 
-        if (line==null) // gateway not found;
-            return null;
+        if (line == null)
+            throw new Exception ("No se encontró el gateway.");
 
         StringTokenizer st = new StringTokenizer( line );
         st.nextToken();
@@ -82,12 +82,12 @@ public class DHCPServidor {
         return InetAddress.getByName(gateway);
     }
 
-    private static void procesarMensaje(DHCPMensaje mensaje) throws Exception {
+    private static void procesarMensaje (DHCPMensaje mensaje) throws Exception {
         // Guardar en el archivo la solicitud.
-
+        Registro registro = null;
         TipoMensajeDHCP tipoMensajeDHCP = TipoMensajeDHCP.INVALID, tipoRespuestaDHCP = TipoMensajeDHCP.INVALID;
         try {
-            byte[] IPsolicitada, IPservidor = new byte[4], subnet, hostname = new byte[0];
+            byte[] IPsolicitada = new byte[4], IPservidor = new byte[4], subnet, hostname = new byte[0];
 
             for (DHCPOpciones opcion : mensaje.getOpcionesDHCP()) {
                 switch (opcion.getType()) {
@@ -114,7 +114,7 @@ public class DHCPServidor {
                 }
             }
 
-            Registro registro = ControladorRegistros.buscarRegistro(mensaje.getChaddr(), mensaje.getHlen());
+            registro = ControladorRegistros.buscarRegistro(mensaje.getChaddr(), mensaje.getHlen());
 
             switch (tipoMensajeDHCP) {
                 case DHCPDISCOVER:
@@ -122,9 +122,14 @@ public class DHCPServidor {
                     break;
 
                 case DHCPREQUEST:
-                    //System.out.println(Arrays.toString(IPservidor) + "-" + Arrays.toString(IPServidor.getAddress()));
-                    if (InetAddress.getByAddress(IPservidor).equals(IPServidor))
-                        tipoRespuestaDHCP = TipoMensajeDHCP.DHCPACK;
+                    if (registro != null) {
+                        if (InetAddress.getByAddress(IPservidor).equals(IPServidor) && Arrays.equals(registro.getIP().getAddress(), IPsolicitada))
+                            tipoRespuestaDHCP = TipoMensajeDHCP.DHCPACK;
+                    }
+                    else {
+                        tipoRespuestaDHCP = TipoMensajeDHCP.DHCPNAK;
+                        registro.setTiempoACK(new Date());
+                    }
 
                 case DHCPDECLINE:
                     break;
@@ -139,31 +144,34 @@ public class DHCPServidor {
                         tipoRespuestaDHCP = TipoMensajeDHCP.DHCPACK;
                     break;
 
-                default:
-                    return;
             }
+
+            if (registro != null)
+                ControladorLog.escribir(registro.getChaddr(), tipoMensajeDHCP, tipoRespuestaDHCP);
 
             if (tipoRespuestaDHCP == TipoMensajeDHCP.INVALID)
                 return;
 
-            responderCliente(tipoRespuestaDHCP, mensaje, new String(hostname), registro);
+            responderCliente(tipoMensajeDHCP, tipoRespuestaDHCP, mensaje, new String(hostname), registro);
         } catch (Exception e) {
             System.out.println("\t-> Error al procesar el mensaje " + tipoMensajeDHCP + ": "+ e.getMessage());
+            ControladorLog.escribir(mensaje.getChaddr(), tipoMensajeDHCP, e.getMessage());
         }
     }
 
-    public static void responderCliente (TipoMensajeDHCP tipoRespuestaDHCP, DHCPMensaje mensajeCliente, String hostname, Registro registro) throws Exception {
+    public static void responderCliente (TipoMensajeDHCP tipoMensajeDHCP, TipoMensajeDHCP tipoRespuestaDHCP, DHCPMensaje mensajeCliente, String hostname, Registro registro) throws Exception {
         InetAddress IPsolicitada;
         DHCPMensaje respuestaCliente = null;
         indexRespuestaMensaje = 0;
         ArrayList <DHCPOpciones> opcionesDHCP = new ArrayList<>();
 
         if (registro == null) {
-            registro = new Registro(mensajeCliente.getChaddr(), obtenerPrimeraIPLibre(mensajeCliente.getYiaddr()), new Date(), new Date(), hostname); // Revisar dates.
+            registro = new Registro(mensajeCliente.getChaddr(), obtenerPrimeraIPLibre(mensajeCliente.getIpsource().getAddress()), new Date(), new Date(), hostname); // Revisar dates.
             ControladorRegistros.anadirRegistro(registro);
+            ControladorLog.escribir(registro.getChaddr(), tipoMensajeDHCP, tipoRespuestaDHCP);
         }
 
-        Subred subred = obtenerSubred(mensajeCliente.getYiaddr());
+        Subred subred = obtenerSubred(mensajeCliente.getIpsource().getAddress());
 
         // Opciones dentro de la respuesta DHCP
 
@@ -195,7 +203,13 @@ public class DHCPServidor {
         );
 
         System.out.println("IP " + registro.getIP() + " asignada a la MAC " + DHCPMensaje.printByteArray(registro.getChaddr(), 2));
-        enviarRespuestaCliente(respuestaCliente, InetAddress.getByName("255.255.255.255"), tipoRespuestaDHCP); // poner el destination address...
+
+        if (mensajeCliente.getIpsource().equals(InetAddress.getByName("0.0.0.0")))
+            IPrespuesta = InetAddress.getByName("255.255.255.255");
+        else
+            IPrespuesta = registro.getIP();
+
+        enviarRespuestaCliente(respuestaCliente, IPrespuesta, tipoRespuestaDHCP);
     }
 
     private static void enviarRespuestaCliente (DHCPMensaje respuestaCliente, InetAddress IPCliente, TipoMensajeDHCP tipoMensajeDHCP) throws IOException {
@@ -258,11 +272,12 @@ public class DHCPServidor {
     }
 
     private static InetAddress obtenerPrimeraIPLibre(byte[] clienteIP) throws Exception {
-        byte[] actual = obtenerSubred(clienteIP).getRangoInicial();
-        byte[] ultima = obtenerSubred(clienteIP).getRangoFinal();
+        Subred subred = obtenerSubred(clienteIP);
+        byte[] actual = subred.getRangoInicial();
+        byte[] ultima = subred.getRangoFinal();
 
         while (!Arrays.equals(actual, ultima))
-            if (!IPdisponible(actual))
+            if (!IPdisponible(actual) || Arrays.equals(actual, subred.getPuertaEnlace()) || Arrays.equals(actual, subred.getServidorDNS()))
                 aumentarIP(actual);
             else
                 return InetAddress.getByAddress(actual);

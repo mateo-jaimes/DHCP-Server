@@ -1,0 +1,2 @@
+[Mon May 02 00:11:26 COT 2022] 18:C0:4D:52:CD:9F | DHCPDISCOVER -> RESPUESTA: DHCPOFFER
+[Mon May 02 00:11:26 COT 2022] 18:C0:4D:52:CD:9F | DHCPDISCOVER -> Error: No existe la subred dentro del archivo de configuraciones (gateway /192.168.20.1).

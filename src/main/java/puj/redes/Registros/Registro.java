@@ -3,26 +3,24 @@ package puj.redes.Registros;
 import puj.redes.DHCPMensaje;
 
 import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 
 public class Registro {
     private byte[] chaddr = new byte [16];
     private InetAddress IP;
-    private Date tiempoAcuse;
-    private Date tiempoAsignado;
+    private Date tiempoACK;
+    private Date tiempoRetirar;
     private String hostname;
 
     public Registro () {
 
     }
 
-    public Registro(byte[] chaddr, InetAddress IP, Date tiempoAcuse, Date tiempoAsignado, String hostname) {
+    public Registro (byte[] chaddr, InetAddress IP, Date tiempoAcuse, Date tiempoAsignado, String hostname) {
         this.chaddr = chaddr;
         this.IP = IP;
-        this.tiempoAcuse = tiempoAcuse;
-        this.tiempoAsignado = tiempoAsignado;
+        this.tiempoACK = tiempoAcuse;
+        this.tiempoRetirar = tiempoAsignado;
         this.hostname = hostname;
     }
 
@@ -42,20 +40,20 @@ public class Registro {
         this.IP = IP;
     }
 
-    public Date getTiempoAcuse() {
-        return tiempoAcuse;
+    public Date getTiempoACK() {
+        return tiempoACK;
     }
 
-    public void setTiempoAcuse(Date tiempoAcuse) {
-        this.tiempoAcuse = tiempoAcuse;
+    public void setTiempoACK(Date tiempoACK) {
+        this.tiempoACK = tiempoACK;
     }
 
-    public Date getTiempoAsignado() {
-        return tiempoAsignado;
+    public Date getTiempoRetirar() {
+        return tiempoRetirar;
     }
 
-    public void setTiempoAsignado(Date tiempoAsignado) {
-        this.tiempoAsignado = tiempoAsignado;
+    public void setTiempoRetirar(Date tiempoRetirar) {
+        this.tiempoRetirar = tiempoRetirar;
     }
 
     public String getHostname() {
@@ -70,8 +68,8 @@ public class Registro {
     public String toString() {
         return DHCPMensaje.printByteArray(chaddr, 2) + ", " +
                 DHCPMensaje.printByteArray(IP.getAddress(), 1) + ", " +
-                tiempoAcuse + ", " +
-                tiempoAsignado + ", " +
-                hostname + "\n";
+                tiempoACK + ", " +
+                tiempoRetirar + ", " +
+                hostname;
     }
 }

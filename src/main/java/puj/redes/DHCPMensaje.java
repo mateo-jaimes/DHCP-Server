@@ -2,12 +2,13 @@ package puj.redes;
 
 import java.io.Serializable;
 import java.net.DatagramPacket;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 public class DHCPMensaje implements Serializable {
-
+    private InetAddress ipsource = null;
     private byte op;
     private byte htype;
     private byte hlen;
@@ -28,6 +29,7 @@ public class DHCPMensaje implements Serializable {
     public DHCPMensaje (DatagramPacket datagramPacket) {
 
         try {
+            this.ipsource = datagramPacket.getAddress();
             this.op = extraerBytes(datagramPacket.getData(), 0, 1)[0];
             this.htype = extraerBytes(datagramPacket.getData(), 1, 1)[0];
             this.hlen = extraerBytes(datagramPacket.getData(), 2, 1)[0];
@@ -195,6 +197,14 @@ public class DHCPMensaje implements Serializable {
 
     public void setOpciones(byte[] opciones) {
         this.opciones = opciones;
+    }
+
+    public InetAddress getIpsource() {
+        return ipsource;
+    }
+
+    public void setIpsource(InetAddress ipsource) {
+        this.ipsource = ipsource;
     }
 
     public static byte[] extraerBytes(byte[] buffer, int inicio, int tam) throws Exception {

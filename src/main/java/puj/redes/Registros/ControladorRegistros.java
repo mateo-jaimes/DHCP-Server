@@ -1,11 +1,10 @@
 package puj.redes.Registros;
 
+import puj.redes.TipoMensajeDHCP;
+
 import java.io.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -41,8 +40,8 @@ public class ControladorRegistros {
 
             registro.setChaddr(buffer);
             registro.setIP(InetAddress.getByName(lineas[1]));
-            registro.setTiempoAcuse(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.ENGLISH).parse(lineas[2]));
-            registro.setTiempoAsignado(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.ENGLISH).parse(lineas[3]));
+            registro.setTiempoACK(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.ENGLISH).parse(lineas[2]));
+            registro.setTiempoRetirar(new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.ENGLISH).parse(lineas[3]));
 
             try {
                 registro.setHostname(lineas[4]);
@@ -85,7 +84,7 @@ public class ControladorRegistros {
     public static void escribirRegistros () throws IOException {
         Writer fw = new FileWriter(pathArchivo, false);
         for (Registro registro : registros)
-            fw.write(registro.toString());
+            fw.write(registro.toString() + "\n");
         fw.close();
     }
 
