@@ -35,6 +35,8 @@ public class DHCPServidor {
     private static DatagramSocket datagramSocket = null;
     private static Thread thread = new ThreadRevocaciones();
 
+    public static boolean renew = false;
+
     public DHCPServidor() {
 
         try {
@@ -129,20 +131,24 @@ public class DHCPServidor {
                     break;
 
                 case DHCPREQUEST:
-                    if (!Arrays.equals(mensaje.getCiaddr(), new byte[]{0, 0, 0, 0})) { // renew.
-                        Registro reg = ControladorRegistros.buscarRegistro(mensaje.getChaddr(), mensaje.getHlen());
-                        if (reg != null)
-                            if (!Arrays.equals(reg.getIP().getAddress(), IPsolicitada) && !Arrays.equals(IPsolicitada, new byte[]{0, 0, 0, 0}))
-                                break;
+                    Registro reg = ControladorRegistros.buscarRegistro(mensaje.getChaddr(), mensaje.getHlen());
 
-                       ControladorRegistros.eliminarRegistro(reg);
+                    if (!Arrays.equals(mensaje.getCiaddr(), new byte[]{0, 0, 0, 0}))
 
-                        registro = new Registro(mensaje.getChaddr(), InetAddress.getByAddress(mensaje.getCiaddr()), new Date(), new Date(), new String(hostname));
+                             if (reg != null)
+                                if (!Arrays.equals(reg.getIP().getAddress(), IPsolicitada) && !Arrays.equals(IPsolicitada, new byte[]{0, 0, 0, 0}))
+                                    break;
+                    tipoRespuestaDHCP = TipoMensajeDHCP.DHCPACK;
+                        if (reg == null) {
+                            break;
+                        }
+                        registro = new Registro(mensaje.getChaddr(), reg.getIP(), new Date(), new Date(), new String(hostname));
                         registro.setTiempoRetirar(new Date (System.currentTimeMillis() + obtenerSubredDesdeIP(mensaje.getCiaddr()).getTiempo() * 1000)); // secs to millis
-                       ControladorRegistros.anadirRegistro(registro);
+                        ControladorRegistros.eliminarRegistro(reg);
+                        ControladorRegistros.anadirRegistro(registro);
                         ControladorLog.escribir(registro.getChaddr(), tipoMensajeDHCP, tipoRespuestaDHCP);
                         tipoRespuestaDHCP = TipoMensajeDHCP.DHCPACK;
-                    }
+
                     if (registro != null) {
                         //if (InetAddress.getByAddress(IPservidor).equals(IPServidor) && Arrays.equals(registro.getIP().getAddress(), IPsolicitada)) {
                             tipoRespuestaDHCP = TipoMensajeDHCP.DHCPACK;
@@ -151,6 +157,7 @@ public class DHCPServidor {
                     else {
                         tipoRespuestaDHCP = TipoMensajeDHCP.DHCPNAK;
                     }
+                    break;
 
                 case DHCPDECLINE:
                     break;
@@ -175,6 +182,7 @@ public class DHCPServidor {
 
             responderCliente(tipoMensajeDHCP, tipoRespuestaDHCP, mensaje, new String(hostname), registro);
         } catch (Exception e) {
+            e.printStackTrace();
             System.out.println("\t-> Error al procesar el mensaje " + tipoMensajeDHCP + ": "+ e.getMessage() + "\n");
             ControladorLog.escribir(mensaje.getChaddr(), tipoMensajeDHCP, e.getMessage());
         }
@@ -232,10 +240,12 @@ public class DHCPServidor {
 
 
         InetAddress IPrespuesta = null;
+        //System.out.println(DHCPMensaje.printByteArray(subred.getPuertaEnlace(), 1) + "-" + serverGateway);
 
-        if (mensajeCliente.getIpsource().equals(InetAddress.getByName("0.0.0.0"))) {
+        if (mensajeCliente.getIpsource().equals(InetAddress.getByName("0.0.0.0")))
             IPrespuesta = InetAddress.getByName("255.255.255.255");
-        }
+        else if (Arrays.equals(subred.getPuertaEnlace(), serverGateway.getAddress()))
+            IPrespuesta = mensajeCliente.getIpsource();
         else
             IPrespuesta = InetAddress.getByAddress(obtenerSubredDesdeIP(mensajeCliente.getIpsource().getAddress()).getPuertaEnlace());
 
@@ -244,14 +254,14 @@ public class DHCPServidor {
 
 
         System.out.println("IP: " + registro.getIP() + " | MAC: " + DHCPMensaje.printByteArray(registro.getChaddr(), 2) + " | " + registro.getTiempoACK() + " -> " + registro.getTiempoRetirar() + " (" + subred.getTiempo() + " segs).");
-        enviarRespuestaCliente(respuestaCliente, IPrespuesta, tipoRespuestaDHCP);
+        enviarRespuestaCliente(respuestaCliente, IPrespuesta, tipoRespuestaDHCP, subred);
     }
 
-    private static void enviarRespuestaCliente (DHCPMensaje respuestaCliente, InetAddress IPCliente, TipoMensajeDHCP tipoMensajeDHCP) throws IOException {
+    private static void enviarRespuestaCliente (DHCPMensaje respuestaCliente, InetAddress IPCliente, TipoMensajeDHCP tipoMensajeDHCP, Subred subred) throws IOException {
         mensajeToBytes(respuestaCliente);
 
         DatagramPacket datagramPacket = null;
-        if (Arrays.equals(IPCliente.getAddress(), new byte[] {(byte) 255, (byte) 255, (byte) 255, (byte) 255}))
+        if (Arrays.equals(IPCliente.getAddress(), new byte[] {(byte) 255, (byte) 255, (byte) 255, (byte) 255}) || Arrays.equals(subred.getPuertaEnlace(), serverGateway.getAddress()))
             datagramPacket = new DatagramPacket(respuestaClienteBytes, respuestaClienteBytes.length, IPCliente, clientPort);
         else
             datagramPacket = new DatagramPacket(respuestaClienteBytes, respuestaClienteBytes.length, IPCliente, routePort);
@@ -311,7 +321,11 @@ public class DHCPServidor {
     }
 
     private static InetAddress obtenerPrimeraIPLibre(byte[] clienteIP) throws Exception {
+        if (Arrays.equals(clienteIP, new byte []{0,0,0,0}))
+            clienteIP = serverGateway.getAddress();
+
         Subred subred = obtenerSubred(clienteIP);
+        System.out.println(DHCPMensaje.printByteArray(clienteIP, 1));
         byte[] actual = subred.getRangoInicial();
         byte[] ultima = subred.getRangoFinal();
 
@@ -325,9 +339,13 @@ public class DHCPServidor {
     }
 
     private static Subred obtenerSubredDesdeIP(byte[] IPcliente) throws Exception {
+        if (Arrays.equals(IPcliente, new byte []{0,0,0,0}))
+            IPcliente = serverGateway.getAddress();
+
+
         for (Subred subred : ControladorSubredes.getSubredes()) {
-            byte[] actual = subred.getRangoInicial();
-            byte[] ultima = subred.getRangoFinal();
+            byte[] actual = subred.getRangoInicial().clone();
+            byte[] ultima = subred.getRangoFinal().clone();
 
             if (Arrays.equals(IPcliente, subred.getPuertaEnlace()))
                 return subred;
@@ -337,6 +355,7 @@ public class DHCPServidor {
                     return subred;
                 else
                     aumentarIP(actual);
+
         }
         throw new Exception ("La IP " + DHCPMensaje.printByteArray(IPcliente, 1) + " no fue encontrada dentro de ningún pool de direcciones.");
     }

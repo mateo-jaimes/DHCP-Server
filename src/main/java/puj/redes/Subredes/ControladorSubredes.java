@@ -22,6 +22,7 @@ public class ControladorSubredes {
                 nuevaOpcion.setServidorDNS(InetAddress.getByName(obtenerValorConfig(bufferedReader)).getAddress());
                 nuevaOpcion.setTiempo(Integer.parseInt(obtenerValorConfig(bufferedReader)));
                 subredes.add(nuevaOpcion);
+
             } while (bufferedReader.readLine() != null);
 
             in.close();
